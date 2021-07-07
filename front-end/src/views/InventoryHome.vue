@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div v-if="inventories.length > 0" class="container">
     <input
       class="search-bar"
       type="text"
@@ -28,9 +28,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in searchedItems" :key="item.id">
+          <tr v-for="item in searchedItems" :key="item._id">
             <td>
-              <router-link :to="$route.path + `/${item.id}`"
+              <router-link :to="$route.path + `/${item._id}`"
                 ><i class="far fa-edit"></i
               ></router-link>
             </td>
@@ -39,7 +39,7 @@
               v-for="(property, index) in inventoryProperties"
               v-bind:key="index"
             >
-              {{ item[property] }}
+              {{ item.properties[property] }}
             </td>
             <td>{{ item["qty"] }}</td>
           </tr>
@@ -54,11 +54,11 @@
     </div>
     <div class="spacer"></div>
   </div>
+  <div v-else>You don't have any inventories, try creating one.</div>
 </template>
 
 <script>
-//import ItemList from "../components/ItemList.vue";
-
+import axios from "axios";
 export default {
   name: "InventoryHome",
   data() {
@@ -67,13 +67,14 @@ export default {
       searchText: "",
     };
   },
+  async created() {},
   computed: {
     searchedItems() {
       return this.searchText === ""
-        ? this.$root.$data.store.inventories[
+        ? this.$root.$data.store.inventoryItems[
             this.$root.$data.store.activeInventory
           ]
-        : this.$root.$data.store.inventories[
+        : this.$root.$data.store.inventoryItems[
             this.$root.$data.store.activeInventory
           ].filter((x) => x.name.includes(this.searchText));
     },
@@ -81,6 +82,12 @@ export default {
       return this.$root.$data.store.properties[
         this.$root.$data.store.activeInventory
       ];
+    },
+    inventories() {
+      return Object.keys(this.$root.$data.store.properties);
+    },
+    activeInventory() {
+      return this.$root.$data.store.activeInventory;
     },
   },
   watch: {
@@ -90,9 +97,40 @@ export default {
         this.showModal = newVal.meta && newVal.meta.showModal;
       },
     },
+    activeInventory: {
+      handler: function () {
+        this.getItems();
+      },
+    },
   },
-  components: {
-    // ItemList,
+  methods: {
+    async getItems() {
+      console.log("active: " + this.$root.$data.store.activeInventory);
+      const res = await axios.get(
+        "/api/item?inventory=" +
+          this.$root.$data.store.inventoryId[
+            this.$root.$data.store.activeInventory
+          ]
+      );
+      console.log(res);
+
+      if (res.status === 200) {
+        if (
+          this.$root.$data.store.activeInventory in
+          this.$root.$data.store.inventoryItems
+        ) {
+          this.$root.$data.store.inventoryItems[
+            this.$root.$data.store.activeInventory
+          ] = res.data;
+        } else {
+          this.$set(
+            this.$root.$data.store.inventoryItems,
+            this.$root.$data.store.activeInventory,
+            res.data
+          );
+        }
+      }
+    },
   },
 };
 </script>
@@ -107,7 +145,7 @@ export default {
 .search-bar {
   font-size: 1.2em;
   line-height: 2em;
-  border-radius: 1em;
+  border-radius: 2em;
   width: 50ch;
   padding-left: 10px;
   margin-top: 30px;

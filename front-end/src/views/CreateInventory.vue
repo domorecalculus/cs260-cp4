@@ -31,26 +31,29 @@
         Create
       </button>
     </div>
+    <p v-if="serverError">
+      There was an error creating your inventory, please try again.
+    </p>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   data() {
     return {
       name: "",
       properties: [],
+      serverError: false,
     };
   },
   created() {
     this.$root.$data.store.activeInventory = "";
   },
   computed: {
-    items: function () {
-      return this.$root.$data.store.inventoryBeingCreated;
-    },
     alreadyExists: function () {
-      return this.name in this.$root.$data.store.inventories;
+      return this.name in this.$root.$data.store.properties;
     },
   },
   watch: {
@@ -63,11 +66,23 @@ export default {
   },
   components: {},
   methods: {
-    createInventory() {
-      this.$root.$data.store.inventories[this.name] = [];
-      this.$root.$data.store.activeInventory = this.name;
-      this.$root.$data.store.properties[this.name] = this.properties;
-      this.$router.push("/inventory");
+    async createInventory() {
+      let res = await axios.post("/api/inventory", {
+        name: this.name,
+        properties: this.properties,
+      });
+      if (res.status == 200) {
+        this.$set(this.$root.$data.store.inventoryItems, this.name, []);
+        this.$set(
+          this.$root.$data.store.properties,
+          this.name,
+          this.properties
+        );
+        this.$root.$data.store.activeInventory = this.name;
+        this.$router.push("/inventory");
+      } else {
+        this.serverError = true;
+      }
     },
     keyupCheck(index) {
       if (this.properties[index] === "") {
@@ -94,6 +109,11 @@ h2 {
 
 .name-container:first-child {
   margin-right: 15px;
+}
+
+.container > p {
+  color: red;
+  white-space: nowrap;
 }
 
 .name-container > p {

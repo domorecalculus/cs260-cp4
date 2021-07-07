@@ -53,7 +53,7 @@
             <p>{{ property }}:</p>
           </td>
           <td>
-            <p>{{ item[property] }}</p>
+            <p>{{ item.properties[property] }}</p>
           </td>
         </tr>
         <tr>
@@ -73,13 +73,14 @@
 </template>
 
 <script>
+import axios from "axios";
 export default {
   data() {
     return {
       isEditing: false,
-      item: this.$root.$data.store.inventories[
+      item: this.$root.$data.store.inventoryItems[
         this.$root.$data.store.activeInventory
-      ].find((x) => x.id == this.$route.params.itemId),
+      ].find((x) => x._id == this.$route.params.itemId),
       newName: "",
       newQty: 0,
       newProperties: [],
@@ -87,7 +88,7 @@ export default {
   },
   computed: {
     inventory: function () {
-      return this.$root.$data.store.inventories[
+      return this.$root.$data.store.inventoryItems[
         this.$root.$data.store.activeInventory
       ];
     },
@@ -102,15 +103,19 @@ export default {
     this.newQty = this.item.qty;
     this.newProperties = this.$root.$data.store.properties[
       this.$root.$data.store.activeInventory
-    ].map((x) => this.item[x]);
+    ].map((x) => this.item.properties[x]);
   },
   methods: {
-    deleteItem() {
-      this.inventory.splice(
-        this.inventory.findIndex((x) => x.id == this.item.id),
-        1
-      );
-      this.$router.go(-1);
+    async deleteItem() {
+      let res = await axios.delete("/api/item/" + this.item._id);
+
+      if (res.status === 200) {
+        this.inventory.splice(
+          this.inventory.findIndex((x) => x._id == this.item._id),
+          1
+        );
+        this.$router.go(-1);
+      }
     },
     editItem() {
       this.isEditing = true;
@@ -118,14 +123,27 @@ export default {
     cancelEdit() {
       this.isEditing = false;
     },
-    saveItem() {
-      this.item.name = this.newName;
-      this.item.qty = this.newQty;
+    async saveItem() {
+      let updatedItem = {};
+      updatedItem.name = this.newName;
+      updatedItem.qty = this.newQty;
+      updatedItem.properties = {};
       this.newProperties.forEach(
         (value, index, arr) =>
-          (this.item[this.inventoryProperties[index]] = value)
+          (updatedItem.properties[this.inventoryProperties[index]] = value)
       );
-      this.isEditing = false;
+      let res = await axios.put("/api/item/" + this.item._id, updatedItem);
+
+      if (res.status === 200) {
+        this.item.name = this.newName;
+        this.item.qty = this.newQty;
+        this.newProperties.forEach(
+          (value, index, arr) =>
+            (this.item.properties[this.inventoryProperties[index]] = value)
+        );
+
+        this.isEditing = false;
+      }
     },
   },
 };

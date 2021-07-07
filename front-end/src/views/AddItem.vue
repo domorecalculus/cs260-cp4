@@ -37,6 +37,7 @@
 </template>
 
 <script>
+import axios from "axios";
 export default {
   name: "AddItem",
   data() {
@@ -48,13 +49,9 @@ export default {
   },
   computed: {
     inventory: function () {
-      if (this.$route.path.includes("create-inventory")) {
-        return this.$root.$data.store.inventoryBeingCreated;
-      } else {
-        return this.$root.$data.store.inventories[
-          this.$root.$data.store.activeInventory
-        ];
-      }
+      return this.$root.$data.store.inventoryItems[
+        this.$root.$data.store.activeInventory
+      ];
     },
     inventoryProperties() {
       return this.$root.$data.store.properties[
@@ -63,21 +60,25 @@ export default {
     },
   },
   methods: {
-    saveItem() {
-      console.log(this.inventory.map((x) => x.id));
+    async saveItem() {
       let item = {
         name: this.name,
         qty: this.qty,
-        id:
-          this.inventory.length > 0
-            ? Math.max(...this.inventory.map((x) => x.id)) + 1
-            : 1,
+        inventory:
+          this.$root.$data.store.inventoryId[
+            this.$root.$data.store.activeInventory
+          ],
       };
+      let propertiesPayload = {};
       for (let property in this.inventoryProperties) {
-        item[this.inventoryProperties[property]] = this.properties[property];
+        propertiesPayload[this.inventoryProperties[property]] =
+          this.properties[property];
       }
-      console.log(item.id);
-      this.inventory.push(item);
+      item.properties = propertiesPayload;
+      let createdItem = await axios.post("/api/item", item);
+      console.log("Added item: ");
+      console.log(createdItem);
+      this.inventory.push(createdItem.data);
       this.$router.go(-1);
     },
   },

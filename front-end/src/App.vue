@@ -10,7 +10,7 @@
     <div class="footer">
       <p>
         Look at source on
-        <a href="https://github.com/domorecalculus/cs260-cp3">Github</a>
+        <a href="https://github.com/domorecalculus/cs260-cp4">Github</a>
       </p>
     </div>
   </div>
